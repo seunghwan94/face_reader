@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-  <title>AI 관상 분석기</title>
+  <title>내가 왕이될 상인가 (관상 프로그램)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
@@ -277,7 +277,28 @@
       overflow: auto;
       font-size: 13px;
       line-height: 1.6;
-      white-space: pre-wrap;
+      /* 마크다운 렌더링을 위해 white-space 제거 */
+    }
+    /* 마크다운 기본 스타일 약간 */
+    .interp-body h1,
+    .interp-body h2,
+    .interp-body h3 {
+      margin: 10px 0 6px;
+      font-weight: 600;
+    }
+    .interp-body h1 { font-size: 18px; }
+    .interp-body h2 { font-size: 16px; }
+    .interp-body h3 { font-size: 14px; }
+    .interp-body p {
+      margin: 4px 0;
+    }
+    .interp-body ul,
+    .interp-body ol {
+      padding-left: 18px;
+      margin: 4px 0 4px 12px;
+    }
+    .interp-body li {
+      margin: 2px 0;
     }
 
     .hint {
@@ -293,8 +314,8 @@
     <section class="card">
       <div class="card-header">
         <div>
-          <div class="title">AI 관상 분석기 (클라이언트)</div>
-          <div class="subtitle">얼굴 이미지 한 장으로 지표·선라인·관상 해석까지</div>
+          <div class="title">내가 왕이될 상인가 (관상 프로그램)</div>
+          <div class="subtitle">얼굴 이미지로 지표·선라인·관상 해석까지</div>
         </div>
         <span class="badge">백엔드: Flask /face API</span>
       </div>
@@ -321,14 +342,15 @@
         </div>
 
         <div class="btn-row">
-          <button id="btnMetrics" class="secondary">
+          <!-- 지표만 보기 버튼은 숨김 -->
+          <!-- <button id="btnMetrics" class="secondary">
             📐 지표만 보기
-          </button>
+          </button> -->
           <button id="btnAnnotate" class="secondary">
-            ✏️ 선라인 포함
+            ✏️ 얼굴 라인
           </button>
           <button id="btnInterpret" class="primary">
-            🔮 관상 해석까지
+            🔮 관상 해석
           </button>
         </div>
         <div id="status" class="status"></div>
@@ -342,7 +364,7 @@
             <span>원본 이미지</span>
           </div>
           <div class="img-wrapper">
-            <img id="originalPreview" alt="원본 미리보기" />
+            <img id="originalPreview" alt="원본 미리보기" style="display:none;" />
           </div>
         </div>
         <div class="preview-card">
@@ -350,7 +372,7 @@
             <span>선라인/지표 시각화 이미지</span>
           </div>
           <div class="img-wrapper">
-            <img id="annotatedPreview" alt="선라인 미리보기" />
+            <img id="annotatedPreview" alt="선라인 미리보기" style="display:none;" />
           </div>
         </div>
       </div>
@@ -378,7 +400,7 @@
       <div id="interpretationBox" class="interp-body">
         아직 분석이 수행되지 않았어요.  
         왼쪽에서 이미지를 업로드한 뒤,  
-        <관상 해석까지> 버튼을 눌러보세요.
+        <관상 해석> 버튼을 눌러보세요.
       </div>
       <div class="hint">
         ※ 실제 점괘처럼 단정하는 것이 아니라, 얼굴 비율·형상·좌우대칭 등을 바탕으로
@@ -386,6 +408,9 @@
       </div>
     </section>
   </div>
+
+  <!-- 🔹 마크다운 파서 (marked.js) 추가 -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
   <script>
     const imageInput   = document.getElementById('imageInput');
@@ -399,6 +424,7 @@
     const metricsTableBody = document.querySelector('#metricsTable tbody');
     const interpretationBox = document.getElementById('interpretationBox');
 
+    // 지표 버튼은 DOM에는 없으니 null일 수 있음
     const btnMetrics   = document.getElementById('btnMetrics');
     const btnAnnotate  = document.getElementById('btnAnnotate');
     const btnInterpret = document.getElementById('btnInterpret');
@@ -440,7 +466,7 @@
     }
 
     function setLoading(isLoading, label) {
-      const buttons = [btnMetrics, btnAnnotate, btnInterpret];
+      const buttons = [btnMetrics, btnAnnotate, btnInterpret].filter(Boolean);
       buttons.forEach(btn => btn.disabled = isLoading);
       if (isLoading) {
         setStatus(label || "분석 중입니다...");
@@ -451,12 +477,23 @@
       }
     }
 
+    function renderMarkdownToBox(text) {
+      // GPT/Gemini가 마크다운을 주면 여기서 HTML로 변환
+      if (!text) {
+        interpretationBox.textContent = "관상 해석 텍스트를 받지 못했습니다.";
+        return;
+      }
+      interpretationBox.innerHTML = marked.parse(text);
+    }
+
     imageInput.addEventListener("change", () => {
       const file = imageInput.files[0];
       if (!file) {
         filenameSpan.textContent = "선택된 파일 없음";
         originalImg.src = "";
         annotatedImg.src = "";
+        originalImg.style.display = "none";
+        annotatedImg.style.display = "none";
         return;
       }
       filenameSpan.textContent = file.name;
@@ -465,6 +502,7 @@
       const reader = new FileReader();
       reader.onload = e => {
         originalImg.src = e.target.result;
+        originalImg.style.display = "block";   // ✅ 실제 이미지 들어올 때만 보이게
       };
       reader.readAsDataURL(file);
     });
@@ -524,28 +562,31 @@
       }
     }
 
-    // 버튼 이벤트
-    btnMetrics.addEventListener("click", async () => {
-      setLoading(true, "얼굴 지표 추출 중...");
-      try {
-        const data = await callApi("metrics");
-        renderMetrics(data);          // /metrics는 metrics dict 자체를 반환
-        setStatus("지표 분석이 완료되었습니다.");
-      } catch (err) {
-        if (err.message !== "no-image") {
-          console.error(err);
+    // 지표 버튼이 있으면 이벤트 연결
+    if (btnMetrics) {
+      btnMetrics.addEventListener("click", async () => {
+        setLoading(true, "얼굴 지표 추출 중...");
+        try {
+          const data = await callApi("metrics");
+          renderMetrics(data);          // /metrics는 metrics dict 자체를 반환
+          setStatus("지표 분석이 완료되었습니다.");
+        } catch (err) {
+          if (err.message !== "no-image") {
+            console.error(err);
+          }
+        } finally {
+          setLoading(false);
         }
-      } finally {
-        setLoading(false);
-      }
-    });
+      });
+    }
 
     btnAnnotate.addEventListener("click", async () => {
       setLoading(true, "선라인 및 지표 시각화 중...");
       try {
         const data = await callApi("annotate");
         if (data.annotated_image) {
-          annotatedImg.src = data.annotated_image; // 이미 data:image/jpeg;base64,... 형식
+          annotatedImg.src = data.annotated_image;
+          annotatedImg.style.display = "block";   // ✅ 여기 추가
         }
         renderMetrics(data.metrics);
         setStatus("선라인 및 지표 시각화가 완료되었습니다.");
@@ -566,10 +607,11 @@
         const data = await callApi("interpret", { llm });
         if (data.annotated_image) {
           annotatedImg.src = data.annotated_image;
+          annotatedImg.style.display = "block";   // ✅ 여기도
         }
         renderMetrics(data.metrics);
         if (data.interpretation) {
-          interpretationBox.textContent = data.interpretation;
+          renderMarkdownToBox(data.interpretation);
         } else {
           interpretationBox.textContent = "관상 해석 텍스트를 받지 못했습니다.";
         }
@@ -585,6 +627,7 @@
         setLoading(false);
       }
     });
+
   </script>
 </body>
 </html>
