@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>AI 관상 분석기</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color-scheme: light dark;
+      --bg: #0f172a;
+      --card: #111827;
+      --accent: #38bdf8;
+      --accent-soft: rgba(56,189,248,0.15);
+      --border: #1f2937;
+      --text-main: #e5e7eb;
+      --text-sub: #9ca3af;
+      --danger: #f97373;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top, #1f2937 0, #020617 55%);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      padding: 24px;
+    }
+    .app {
+      width: 100%;
+      max-width: 1200px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.3fr);
+      gap: 18px;
+    }
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: radial-gradient(circle at top left, #111827 0, #020617 60%);
+      border-radius: 16px;
+      padding: 18px 18px 20px;
+      border: 1px solid var(--border);
+      box-shadow: 0 18px 45px rgba(0,0,0,0.55);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 14px;
+    }
+    .title {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .subtitle {
+      font-size: 13px;
+      color: var(--text-sub);
+    }
+    .badge {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--accent-soft);
+      background: rgba(15,23,42,0.85);
+      color: var(--accent);
+    }
+
+    .upload-zone {
+      border: 1px dashed rgba(148,163,184,0.6);
+      border-radius: 14px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: radial-gradient(circle at top left, rgba(56,189,248,0.09), transparent 55%);
+    }
+    .upload-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .upload-label {
+      font-size: 13px;
+      color: var(--text-sub);
+    }
+    .file-input-wrap {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      background: rgba(15,23,42,0.92);
+      border-radius: 999px;
+      border: 1px solid rgba(31,41,55,0.9);
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .file-input-wrap span {
+      color: var(--text-sub);
+    }
+    input[type=file] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+    .filename {
+      font-size: 12px;
+      color: var(--text-sub);
+      max-width: 280px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 6px;
+      align-items: center;
+    }
+    .select {
+      background: rgba(15,23,42,0.9);
+      border-radius: 999px;
+      padding: 6px 12px;
+      border: 1px solid rgba(31,41,55,0.9);
+      color: var(--text-main);
+      font-size: 13px;
+      outline: none;
+    }
+    .select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(56,189,248,0.35);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    button {
+      border-radius: 999px;
+      border: 1px solid transparent;
+      font-size: 13px;
+      padding: 7px 14px;
+      cursor: pointer;
+      background: rgba(15,23,42,0.95);
+      color: var(--text-main);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.08s ease;
+    }
+    button.primary {
+      background: linear-gradient(135deg, #38bdf8, #6366f1);
+      border-color: rgba(148,163,184,0.4);
+      color: white;
+      font-weight: 500;
+    }
+    button.secondary {
+      border-color: rgba(55,65,81,0.9);
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: default;
+      transform: none !important;
+    }
+    button:not(:disabled):hover {
+      transform: translateY(-1px);
+      border-color: var(--accent);
+    }
+
+    .status {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--text-sub);
+      min-height: 16px;
+    }
+    .status strong { color: var(--accent); }
+    .status.error { color: var(--danger); }
+
+    .preview-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    @media (max-width: 900px) {
+      .preview-grid { grid-template-columns: 1fr; }
+    }
+    .preview-card {
+      background: rgba(15,23,42,0.9);
+      border-radius: 12px;
+      border: 1px solid rgba(31,41,55,0.9);
+      padding: 8px;
+    }
+    .preview-title {
+      font-size: 12px;
+      color: var(--text-sub);
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .img-wrapper {
+      position: relative;
+      width: 100%;
+      padding-top: 75%;
+      border-radius: 10px;
+      overflow: hidden;
+      background: radial-gradient(circle at top, #111827 0, #020617 60%);
+    }
+    .img-wrapper img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .metrics {
+      margin-top: 12px;
+      max-height: 260px;
+      overflow: auto;
+      border-radius: 10px;
+      border: 1px solid rgba(31,41,55,0.9);
+      background: rgba(15,23,42,0.85);
+    }
+    .metrics-header {
+      font-size: 13px;
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(31,41,55,0.9);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .metrics-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .metrics-table th,
+    .metrics-table td {
+      padding: 4px 10px;
+      text-align: left;
+      border-bottom: 1px dashed rgba(31,41,55,0.8);
+    }
+    .metrics-table th {
+      color: var(--text-sub);
+      font-weight: 500;
+      width: 45%;
+    }
+    .metrics-table tr:nth-child(2n) {
+      background: rgba(15,23,42,0.8);
+    }
+
+    .interp-card {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .interp-body {
+      margin-top: 8px;
+      border-radius: 10px;
+      background: rgba(15,23,42,0.9);
+      border: 1px solid rgba(31,41,55,0.9);
+      padding: 10px;
+      flex: 1;
+      min-height: 220px;
+      max-height: 430px;
+      overflow: auto;
+      font-size: 13px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    .hint {
+      font-size: 11px;
+      color: var(--text-sub);
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- 좌측: 입력 / 미리보기 / 지표 -->
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <div class="title">AI 관상 분석기 (클라이언트)</div>
+          <div class="subtitle">얼굴 이미지 한 장으로 지표·선라인·관상 해석까지</div>
+        </div>
+        <span class="badge">백엔드: Flask /face API</span>
+      </div>
+
+      <!-- 업로드 영역 -->
+      <div class="upload-zone">
+        <div class="upload-row">
+          <div class="upload-label">1. 관상 분석할 얼굴 이미지를 올려주세요 (정면, jpg/png, 2MB 이하)</div>
+        </div>
+        <div class="upload-row">
+          <label class="file-input-wrap">
+            <span>📷 이미지 선택</span>
+            <input type="file" id="imageInput" accept="image/jpeg,image/png" />
+          </label>
+          <div id="filename" class="filename">선택된 파일 없음</div>
+        </div>
+
+        <div class="options">
+          <label class="upload-label">LLM 선택:</label>
+          <select id="llmSelect" class="select">
+            <option value="gpt">GPT (gpt-4o-mini)</option>
+            <option value="gemini">Gemini (2.5-flash)</option>
+          </select>
+        </div>
+
+        <div class="btn-row">
+          <button id="btnMetrics" class="secondary">
+            📐 지표만 보기
+          </button>
+          <button id="btnAnnotate" class="secondary">
+            ✏️ 선라인 포함
+          </button>
+          <button id="btnInterpret" class="primary">
+            🔮 관상 해석까지
+          </button>
+        </div>
+        <div id="status" class="status"></div>
+        <div class="hint">※ 관상 해석 버튼은 백엔드에서 OpenAI / Gemini API 키가 설정되어 있어야 작동합니다.</div>
+      </div>
+
+      <!-- 이미지 프리뷰 -->
+      <div class="preview-grid">
+        <div class="preview-card">
+          <div class="preview-title">
+            <span>원본 이미지</span>
+          </div>
+          <div class="img-wrapper">
+            <img id="originalPreview" alt="원본 미리보기" />
+          </div>
+        </div>
+        <div class="preview-card">
+          <div class="preview-title">
+            <span>선라인/지표 시각화 이미지</span>
+          </div>
+          <div class="img-wrapper">
+            <img id="annotatedPreview" alt="선라인 미리보기" />
+          </div>
+        </div>
+      </div>
+
+      <!-- 지표 -->
+      <div class="metrics" id="metricsBox" style="display:none;">
+        <div class="metrics-header">
+          <span>얼굴 정량 지표 (상대적인 수치)</span>
+          <span style="font-size:11px;color:var(--text-sub);">값이 크다고 무조건 좋거나 나쁜 것은 아닙니다.</span>
+        </div>
+        <table class="metrics-table" id="metricsTable">
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 우측: 관상 해석 텍스트 -->
+    <section class="card interp-card">
+      <div class="card-header">
+        <div>
+          <div class="title">관상 해석 결과</div>
+          <div class="subtitle">GPT / Gemini가 얼굴 지표를 바탕으로 풀어낸 한국식 관상 리포트</div>
+        </div>
+      </div>
+      <div id="interpretationBox" class="interp-body">
+        아직 분석이 수행되지 않았어요.  
+        왼쪽에서 이미지를 업로드한 뒤,  
+        <관상 해석까지> 버튼을 눌러보세요.
+      </div>
+      <div class="hint">
+        ※ 실제 점괘처럼 단정하는 것이 아니라, 얼굴 비율·형상·좌우대칭 등을 바탕으로
+        “그럴 가능성이 높은 경향”을 이야기하는 형식입니다.
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const imageInput   = document.getElementById('imageInput');
+    const filenameSpan = document.getElementById('filename');
+    const statusEl     = document.getElementById('status');
+    const originalImg  = document.getElementById('originalPreview');
+    const annotatedImg = document.getElementById('annotatedPreview');
+    const llmSelect    = document.getElementById('llmSelect');
+
+    const metricsBox   = document.getElementById('metricsBox');
+    const metricsTableBody = document.querySelector('#metricsTable tbody');
+    const interpretationBox = document.getElementById('interpretationBox');
+
+    const btnMetrics   = document.getElementById('btnMetrics');
+    const btnAnnotate  = document.getElementById('btnAnnotate');
+    const btnInterpret = document.getElementById('btnInterpret');
+
+    const API_BASE = (() => {
+        // file:// 로 열었으면 백엔드(로컬 Flask)로 고정
+        if (location.protocol === 'file:') return 'http://127.0.0.1:5000';
+        // 동일 오리진에서 서빙하는 경우 그대로 상대경로 사용
+        return '';
+    })();
+
+    const metricLabels = {
+      face_width: "얼굴 가로폭",
+      face_height: "얼굴 세로길이",
+      eye_distance: "두 눈 사이 거리",
+      left_eye_width: "왼쪽 눈 가로",
+      right_eye_width: "오른쪽 눈 가로",
+      left_eye_height: "왼쪽 눈 세로",
+      right_eye_height: "오른쪽 눈 세로",
+      nose_length: "코 길이",
+      nose_width: "코 폭",
+      mouth_width: "입술 가로",
+      mouth_height: "입술 세로",
+      eye_to_mouth: "눈-입 중심 간 거리",
+      eye_left_to_chin: "왼눈-턱 중앙 거리",
+      eye_right_to_chin: "오른눈-턱 중앙 거리",
+      nose_to_mouth: "코-입 거리",
+      nose_to_chin: "코-턱 거리",
+      jaw_width: "턱 가로 폭",
+      jaw_length: "턱 라인 길이",
+      mouth_tilt_angle: "입꼬리 기울기 각도(°)",
+      left_eb_to_eye_dist: "왼 눈썹-눈 사이",
+      right_eb_to_eye_dist: "오른 눈썹-눈 사이"
+    };
+
+    function setStatus(message, isError=false) {
+      statusEl.textContent = message || "";
+      statusEl.classList.toggle("error", isError);
+    }
+
+    function setLoading(isLoading, label) {
+      const buttons = [btnMetrics, btnAnnotate, btnInterpret];
+      buttons.forEach(btn => btn.disabled = isLoading);
+      if (isLoading) {
+        setStatus(label || "분석 중입니다...");
+      } else {
+        if (!statusEl.classList.contains("error")) {
+          setStatus("");
+        }
+      }
+    }
+
+    imageInput.addEventListener("change", () => {
+      const file = imageInput.files[0];
+      if (!file) {
+        filenameSpan.textContent = "선택된 파일 없음";
+        originalImg.src = "";
+        annotatedImg.src = "";
+        return;
+      }
+      filenameSpan.textContent = file.name;
+
+      // 미리보기
+      const reader = new FileReader();
+      reader.onload = e => {
+        originalImg.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    async function callApi(endpoint, extraFormFields = {}) {
+      const file = imageInput.files[0];
+      if (!file) {
+        setStatus("먼저 이미지를 선택해주세요.", true);
+        alert("먼저 이미지를 선택해주세요.");
+        throw new Error("no-image");
+      }
+      const form = new FormData();
+      form.append("image", file);
+      for (const [k, v] of Object.entries(extraFormFields)) {
+        form.append(k, v);
+      }
+
+      const resp = await fetch(API_BASE + "/api/v1/" + endpoint, {
+        method: "POST",
+        body: form
+      });
+
+      if (!resp.ok) {
+        let msg = "서버 오류가 발생했습니다.";
+        try {
+          const data = await resp.json();
+          if (data && data.error) msg = data.error;
+        } catch (_) {}
+        setStatus(msg, true);
+        throw new Error(msg);
+      }
+      const data = await resp.json();
+      return data;
+    }
+
+    function renderMetrics(metrics) {
+      if (!metrics || typeof metrics !== "object") {
+        metricsBox.style.display = "none";
+        return;
+      }
+      metricsBox.style.display = "block";
+      metricsTableBody.innerHTML = "";
+
+      const entries = Object.entries(metrics).sort((a,b) => a[0].localeCompare(b[0]));
+      for (const [key, value] of entries) {
+        if (typeof value !== "number") continue;
+        const tr = document.createElement("tr");
+        const th = document.createElement("th");
+        const td = document.createElement("td");
+
+        th.textContent = metricLabels[key] || key;
+        td.textContent = value.toFixed(2);
+
+        tr.appendChild(th);
+        tr.appendChild(td);
+        metricsTableBody.appendChild(tr);
+      }
+    }
+
+    // 버튼 이벤트
+    btnMetrics.addEventListener("click", async () => {
+      setLoading(true, "얼굴 지표 추출 중...");
+      try {
+        const data = await callApi("metrics");
+        renderMetrics(data);          // /metrics는 metrics dict 자체를 반환
+        setStatus("지표 분석이 완료되었습니다.");
+      } catch (err) {
+        if (err.message !== "no-image") {
+          console.error(err);
+        }
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    btnAnnotate.addEventListener("click", async () => {
+      setLoading(true, "선라인 및 지표 시각화 중...");
+      try {
+        const data = await callApi("annotate");
+        if (data.annotated_image) {
+          annotatedImg.src = data.annotated_image; // 이미 data:image/jpeg;base64,... 형식
+        }
+        renderMetrics(data.metrics);
+        setStatus("선라인 및 지표 시각화가 완료되었습니다.");
+      } catch (err) {
+        if (err.message !== "no-image") {
+          console.error(err);
+        }
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    btnInterpret.addEventListener("click", async () => {
+      const llm = llmSelect.value || "gpt";
+      setLoading(true, `관상 해석(${llm.toUpperCase()}) 생성 중...`);
+      interpretationBox.textContent = "관상 해석을 생성 중입니다. 보통 수 초 정도 소요될 수 있습니다...";
+      try {
+        const data = await callApi("interpret", { llm });
+        if (data.annotated_image) {
+          annotatedImg.src = data.annotated_image;
+        }
+        renderMetrics(data.metrics);
+        if (data.interpretation) {
+          interpretationBox.textContent = data.interpretation;
+        } else {
+          interpretationBox.textContent = "관상 해석 텍스트를 받지 못했습니다.";
+        }
+        setStatus("관상 해석이 완료되었습니다.");
+      } catch (err) {
+        if (err.message === "no-image") {
+          interpretationBox.textContent = "먼저 이미지를 업로드한 뒤, 다시 시도해주세요.";
+        } else {
+          interpretationBox.textContent = "관상 해석 중 오류가 발생했습니다. 콘솔 로그를 확인해주세요.";
+          console.error(err);
+        }
+      } finally {
+        setLoading(false);
+      }
+    });
+  </script>
+</body>
+</html>
