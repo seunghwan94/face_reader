@@ -3,6 +3,8 @@
 > 얼굴 이미지 → 정량 지표 추출 → 선(Line) 시각화 → GPT/Gemini 관상 해석 
 > 백엔드(Flask)와 프론트엔드(HTML/CSS/JS)로 구성된 프로젝트입니다.
 
+<img width="1220" height="851" alt="image" src="https://github.com/user-attachments/assets/df2da8be-f1fb-448f-9bed-74d86cc666c3" />
+
 ## 소개
 이 프로젝트는 얼굴 이미지 한 장으로 정량 지표(metrics) 를 추출하고,
 이를 기반으로 정밀 선(Line) 시각화와 AI 관상 해석을 제공하는 프로그램입니다.
